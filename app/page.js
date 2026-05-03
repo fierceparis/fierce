@@ -115,9 +115,13 @@ export default function Home() {
   );
 }
 async function LatestPhotos() {
-  const res = await fetch("http://localhost:3000/api/photos?limit=8", {
-    cache: "no-store",
-  });
+  const baseUrl = process.env.VERCEL_URL
+  ? `https://${process.env.VERCEL_URL}`
+  : "http://localhost:3000";
+
+const res = await fetch(`${baseUrl}/api/photos?limit=8`, {
+  cache: "no-store",
+});
 
   const data = await res.json();
 
