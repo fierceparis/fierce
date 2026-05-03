@@ -1,6 +1,7 @@
 import ShotgunWidget from "./ShotgunWidget";
 import PhotoItem from "./photos/PhotoItem";
 import ContactForm from "./ContactForm";
+import LatestPhotos from "./LatestPhotos";
 
 export default function Home() {
   return (
@@ -112,24 +113,5 @@ export default function Home() {
       </section>
 
     </main>
-  );
-}
-async function LatestPhotos() {
-  const baseUrl = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : "http://localhost:3000";
-
-  const res = await fetch(`${baseUrl}/api/photos?limit=8`, {
-    cache: "no-store",
-  });
-
-  const data = await res.json();
-
-  return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
-      {data.photos.map((photo) => (
-        <PhotoItem key={photo.id} photo={photo} />
-      ))}
-    </div>
   );
 }
