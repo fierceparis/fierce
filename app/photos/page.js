@@ -1,8 +1,6 @@
 "use client";
-export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import PhotoItem from "./PhotoItem";
 
 function formatTag(tag) {
@@ -12,63 +10,52 @@ function formatTag(tag) {
 }
 
 export default function PhotosPage() {
-  const searchParams = useSearchParams();
-  const activeTag = searchParams.get("tag");
-
+  const [activeTag, setActiveTag] = useState(null);
   const [photos, setPhotos] = useState([]);
   const [nextCursor, setNextCursor] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const allTags = [
-    ...new Set(photos.flatMap((photo) => photo.tags || [])),
-  ];
+  const allTags = [...new Set(photos.flatMap((photo) => photo.tags || []))];
 
-  const loadPhotos = async () => {
+  const loadPhotos = async (cursor = null, tag = activeTag) => {
     if (loading) return;
 
     setLoading(true);
 
-    const tagParam = activeTag ? `&tag=${activeTag}` : "";
+    const tagParam = tag ? `&tag=${tag}` : "";
+    const cursorParam = cursor ? `&next_cursor=${cursor}` : "";
 
-    const url = nextCursor
-      ? `/api/photos?limit=24&next_cursor=${nextCursor}${tagParam}`
-      : `/api/photos?limit=24${tagParam}`;
-
-    const res = await fetch(url);
+    const res = await fetch(`/api/photos?limit=24${cursorParam}${tagParam}`);
     const data = await res.json();
 
     setPhotos((prev) => {
-      const merged = [...prev, ...data.photos];
+      const merged = cursor ? [...prev, ...data.photos] : data.photos;
 
-      const unique = merged.filter(
+      return merged.filter(
         (photo, index, self) =>
           index === self.findIndex((p) => p.id === photo.id)
       );
-
-      return unique;
     });
 
-    setNextCursor(data.nextCursor);
+    setNextCursor(data.nextCursor || null);
     setLoading(false);
   };
 
   useEffect(() => {
-    setPhotos([]);
-    setNextCursor(null);
-  }, [activeTag]);
+    const params = new URLSearchParams(window.location.search);
+    const tag = params.get("tag");
 
-  useEffect(() => {
-    loadPhotos();
-  }, [activeTag, nextCursor]);
+    setActiveTag(tag);
+    loadPhotos(null, tag);
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
       const nearBottom =
-        window.innerHeight + window.scrollY >=
-        document.body.offsetHeight - 500;
+        window.innerHeight + window.scrollY >= document.body.offsetHeight - 500;
 
       if (nearBottom && nextCursor && !loading) {
-        loadPhotos();
+        loadPhotos(nextCursor, activeTag);
       }
     };
 
@@ -84,9 +71,7 @@ export default function PhotosPage() {
             Gallery
           </p>
 
-          <h1 className="text-3xl font-black md:text-5xl">
-            All photos
-          </h1>
+          <h1 className="text-3xl font-black md:text-5xl">All photos</h1>
 
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <a
