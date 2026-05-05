@@ -1,21 +1,37 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import PhotoItem from "./PhotoItem";
 
+function formatTag(tag) {
+  return tag
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
 export default function PhotosPage() {
+  const searchParams = useSearchParams();
+  const activeTag = searchParams.get("tag");
+
   const [photos, setPhotos] = useState([]);
   const [nextCursor, setNextCursor] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  const allTags = [
+    ...new Set(photos.flatMap((photo) => photo.tags || [])),
+  ];
 
   const loadPhotos = async () => {
     if (loading) return;
 
     setLoading(true);
 
+    const tagParam = activeTag ? `&tag=${activeTag}` : "";
+
     const url = nextCursor
-      ? `/api/photos?limit=24&next_cursor=${nextCursor}`
-      : `/api/photos?limit=24`;
+      ? `/api/photos?limit=24&next_cursor=${nextCursor}${tagParam}`
+      : `/api/photos?limit=24${tagParam}`;
 
     const res = await fetch(url);
     const data = await res.json();
@@ -36,8 +52,13 @@ export default function PhotosPage() {
   };
 
   useEffect(() => {
+    setPhotos([]);
+    setNextCursor(null);
+  }, [activeTag]);
+
+  useEffect(() => {
     loadPhotos();
-  }, []);
+  }, [activeTag, nextCursor]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -52,7 +73,7 @@ export default function PhotosPage() {
 
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [nextCursor, loading]);
+  }, [nextCursor, loading, activeTag]);
 
   return (
     <main className="min-h-screen bg-black px-6 py-10 text-white">
@@ -65,6 +86,33 @@ export default function PhotosPage() {
           <h1 className="text-3xl font-black md:text-5xl">
             All photos
           </h1>
+
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            <a
+              href="/photos"
+              className={`rounded-full px-4 py-2 text-sm uppercase tracking-[0.2em] transition ${
+                !activeTag
+                  ? "bg-white text-black"
+                  : "border border-white/20 text-white/70 hover:text-white"
+              }`}
+            >
+              Tous
+            </a>
+
+            {allTags.map((tag) => (
+              <a
+                key={tag}
+                href={`/photos?tag=${tag}`}
+                className={`rounded-full px-4 py-2 text-sm uppercase tracking-[0.2em] transition ${
+                  activeTag === tag
+                    ? "bg-white text-black"
+                    : "border border-white/20 text-white/70 hover:text-white"
+                }`}
+              >
+                {formatTag(tag)}
+              </a>
+            ))}
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
