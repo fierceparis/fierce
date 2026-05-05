@@ -5,7 +5,7 @@ import PhotoItem from "./PhotoItem";
 
 function formatTag(tag) {
   return tag
-    .replace(/-/g, " ")
+    .replace(/[-_]/g, " ")
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
@@ -15,14 +15,14 @@ export default function PhotosPage() {
   const [nextCursor, setNextCursor] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const allTags = [...new Set(photos.flatMap((photo) => photo.tags || []))];
+  const [allTags, setAllTags] = useState([]);
 
   const loadPhotos = async (cursor = null, tag = activeTag) => {
     if (loading) return;
 
     setLoading(true);
 
-    const tagParam = tag ? `&tag=${tag}` : "";
+    const tagParam = tag ? `&tag=${encodeURIComponent(tag)}` : "";
     const cursorParam = cursor ? `&next_cursor=${cursor}` : "";
 
     const res = await fetch(`/api/photos?limit=24${cursorParam}${tagParam}`);
@@ -48,6 +48,16 @@ export default function PhotosPage() {
     setActiveTag(tag);
     loadPhotos(null, tag);
   }, []);
+
+  useEffect(() => {
+  async function loadTags() {
+    const res = await fetch("/api/photo-tags");
+    const data = await res.json();
+    setAllTags(data.tags || []);
+  }
+
+  loadTags();
+}, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -88,7 +98,7 @@ export default function PhotosPage() {
             {allTags.map((tag) => (
               <a
                 key={tag}
-                href={`/photos?tag=${tag}`}
+                href={`/photos?tag=${encodeURIComponent(tag)}`}
                 className={`rounded-full px-4 py-2 text-sm uppercase tracking-[0.2em] transition ${
                   activeTag === tag
                     ? "bg-white text-black"
