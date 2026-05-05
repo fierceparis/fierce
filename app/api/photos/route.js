@@ -21,16 +21,17 @@ export async function GET(request) {
     .expression(expression)
     .sort_by("created_at", "desc")
     .max_results(limit)
+    .with_field("tags")
     .next_cursor(nextCursor || undefined)
     .execute();
 
   return Response.json({
     photos: result.resources.map((photo) => ({
-      id: photo.public_id,
-      url: photo.secure_url,
-      createdAt: photo.created_at,
-      tags: photo.tags,
-    })),
+  id: photo.public_id,
+  url: photo.secure_url,
+  createdAt: photo.created_at,
+  tags: photo.tags || [],
+})),
     nextCursor: result.next_cursor || null,
   });
 }
